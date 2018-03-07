@@ -1,0 +1,9 @@
+# ignore object files
+*.o
+
+#ignore executable files
+*.out
+server-*
+client-*
+
+
