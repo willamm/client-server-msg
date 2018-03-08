@@ -19,26 +19,8 @@
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  get_server_key
- *  Description:  
- * =====================================================================================
- */
-key_t get_server_key(const char* fileName)
-{	
-	key_t server_key;
-	if ((server_key = ftok(fileName, 'a')) == -1)
-	{
-		perror("ftok");
-		exit(EXIT_FAILURE);
-	}
-	return server_key;
-} /* -----  end of function get_server_key  ----- */
-
-
-/* 
- * ===  FUNCTION  ======================================================================
  *         Name:  Msgget
- *  Description:  
+ *  Description: Wrapper function for msgget(). Exits the program if msgget() fails.  
  * =====================================================================================
  */
 int Msgget(key_t key, int flags)
@@ -56,7 +38,7 @@ int Msgget(key_t key, int flags)
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  Msgctl
- *  Description:  
+ *  Description:  Wrapper function for msgctl(). Exits the program if msgctl() fails.
  * =====================================================================================
  */
 int Msgctl(int msqid, int cmd, struct msqid_ds* queue_info)
@@ -73,7 +55,9 @@ int Msgctl(int msqid, int cmd, struct msqid_ds* queue_info)
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  mesg_send
- *  Description:  
+ *  Description:  Wrapper function for msgsnd(). The address of the message type is passed
+ *  		 to msgsnd's message buffer parameter because that is the memory address
+ *  		 of the beginning of the message data.
  * =====================================================================================
  */
 int mesg_send (int id, Message* buffer)
@@ -85,7 +69,9 @@ int mesg_send (int id, Message* buffer)
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  mesg_recv
- *  Description:  
+ *  Description:  Wrapper function for msgrcv(). The address of the message type is passed
+ *  		 to msgsnd's message buffer parameter because that is the memory address
+ *  		 of the beginning of the message data.
  * =====================================================================================
  */
 int mesg_recv(int id, Message* buffer)
