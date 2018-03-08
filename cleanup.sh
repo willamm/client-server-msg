@@ -2,14 +2,8 @@
 
 function cleanup
 {
-	ipcs -q | 		\
-	while read c1 c2 c3;	\
-	do 			\
-		echo $c2;	\
-				\
-		ipcrm -q $c2;	\
-	done
-	echo "done"
+	ipcrm -Q 76
+	echo "done cleanup"
 }
 
 cleanup

@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Werror -std=c99
+CFLAGS = -Wall -Werror
 DBFLAGS = -ggdb -DDEBUG
 LDFLAGS = -lpthread
 DEBUG-TARGETS = server-debug client-debug
@@ -7,7 +7,7 @@ RELEASE-TARGETS = server client
 HEADERS = mesg.h
 
 build-debug = $(CC) $(CFLAGS) $(DBFLAGS) $(LDFLAGS)
-build-release = $(CC) $(CFLAGS) $(LDFLAGS)
+build-release = $(CC) $(CFLAGS) $(LDFLAGS) -O3
 
 .PHONY: all debug release default clean
 
@@ -39,6 +39,29 @@ client-debug.o: client.c
 
 # Rules for a release build
 release: $(RELEASE-TARGETS)
+
+server: server_main.o server.o wrappers.o
+	$(build-release) -o $@ $^
+
+server_main.o: server_main.c
+	$(build-release) -c -o $@ $^
+
+server.o: server.c
+	$(build-release) -c -o $@ $^
+
+client: client_main.o client.o wrappers.o
+	$(build-release) -o $@ $^
+
+client_main.o: client_main.c
+	$(build-release) -c -o $@ $^
+
+client.o: client.c 
+	$(build-release) -c -o $@ $^
+
+wrappers.o: wrappers.c
+	$(build-release) -c -o $@ $^
+
+
 
 clean:
 	rm -rf $(DEBUG-TARGETS) $(RELEASE-TARGETS) *.o

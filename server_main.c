@@ -3,7 +3,7 @@
  *
  *       Filename:  server_main.c
  *
- *    Description:  
+ *    Description: Contains only the main function for the server program. 
  *
  *        Version:  1.0
  *        Created:  2018-03-05 12:41:31 PM
@@ -20,7 +20,8 @@
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  main
- *  Description:  
+ *  Description:  Creates the message queue, then passes the return value of msgget to 
+ *  		the server function.
  * =====================================================================================
  */
 int main()

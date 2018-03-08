@@ -3,7 +3,8 @@
  *
  *       Filename:  server.c
  *
- *    Description:  
+ *    Description: Source file for the main server function. Contains only the server
+ *    			function.
  *
  *        Version:  1.0
  *        Created:  2018-03-05 12:55:03 PM
@@ -35,14 +36,13 @@ void server(int read, int write)
 	
 	while (true)
 	{
-		if ((messageSize = read_message(read, 1, &mesg)) == -1)
+		// The message type for message from the client to the server is 1
+		mesg.type = 1;
+		if ((messageSize = mesg_recv(read, &mesg)) == 0)
 		{
 			fprintf(stderr, "Pathname missing\n");
 			continue;
 		}
-		// Determine the priority of the client. In this program, priority 
-		// determines the speed at which the client will receive a message
-		printf("Size of message: %d\n", messageSize);
 		mesg.data[messageSize] = '\0';
 		if ((fileName = strchr(mesg.data, ' ')) == NULL)
 		{
@@ -52,35 +52,41 @@ void server(int read, int write)
 		// Null terminate the filename
 		*fileName++ = '\0';
 		clientPid = atol(mesg.data);
-		mesg.type = clientPid;
 		printf("Received message from client with PID = %ld\n", (long) clientPid);
 		// Fork child process to service client request
 		if (fork() == 0)
 		{
+			mesg.type = (long) clientPid;
 			if ((fileToSend = fopen(fileName, "r")) == NULL)
 			{
 				// Tell the client that the file was unable to be opened
-				messageSize = strlen(mesg.data);
-				snprintf(mesg.data + messageSize, MAXMESSAGEDATA, ": can't open file %s\nfopen: %s\n", fileName, strerror(errno)); 
-				mesg.length = strlen(mesg.data);
-				send_message(write, &mesg);
+				size_t numToWrite = sizeof(mesg.data);
+				snprintf(mesg.data + messageSize, numToWrite, ": can't open the file. %s. \n", strerror(errno)); 
+				mesg.length = strlen(fileName);
+				// We do this to avoid the message sent to the client from being overwritten
+				memmove(mesg.data, fileName, mesg.length);
+				if (mesg_send(write, &mesg) == -1)
+				{
+					perror("msgsnd");
+					continue;
+				}
 			}
 			else 
 			{
 				while (fgets(mesg.data, MAXMESSAGEDATA, fileToSend) != NULL)
 				{
 					mesg.length = strlen(mesg.data);
-					send_message(write, &mesg);
+					mesg_send(write, &mesg);
 				}
 				if (fclose(fileToSend) == EOF)
 				{
 					perror("fclose");
-					exit(EXIT_FAILURE);
+					continue;
 				}
 			}
 			// Send 0 length message to client to signal that the server is done sending
 			mesg.length = 0;
-			send_message(write, &mesg);
+			mesg_send(write, &mesg);
 			exit(EXIT_SUCCESS);
 		}
 	}

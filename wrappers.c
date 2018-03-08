@@ -70,38 +70,27 @@ int Msgctl(int msqid, int cmd, struct msqid_ds* queue_info)
 	return result;
 }/* -----  end of function Msgctl  ----- */
 
-
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  read_message
+ *         Name:  mesg_send
  *  Description:  
  * =====================================================================================
  */
-int read_message(int qid, long type, Message* buf)
+int mesg_send (int id, Message* buffer)
 {
-	int result = msgrcv(qid, buf, MAXMESSAGEDATA, type, 0);
-	if (result == -1) 
-	{
-		perror("msgrcv");
-		exit(EXIT_FAILURE);
-	}
-	buf->length = result;
-	printf("Buf length: %d\n", buf->length);
-	return result;
-}/* -----  end of function read_message  ----- */
+	return msgsnd(id, &buffer->type, buffer->length, 0);
+}/* -----  end of function mesg_send  ----- */
 
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  send_message
+ *         Name:  mesg_recv
  *  Description:  
  * =====================================================================================
  */
-int send_message(int qid, Message* buf)
-{	
-	int length = sizeof(Message) - sizeof(long) - sizeof(int);
-	int result = msgsnd(qid, buf, length, 0);
-	return result;
-}/* -----  end of function send_message  ----- */
-
-
+int mesg_recv(int id, Message* buffer)
+{
+	int n = msgrcv(id, &buffer->type, MAXMESSAGEDATA, buffer->type, 0);
+	buffer->length = n;
+	return n;
+}		/* -----  end of function mesg_recv  ----- */

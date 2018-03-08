@@ -1,4 +1,23 @@
+/*
+ * =====================================================================================
+ *
+ *       Filename:  mesg.h
+ *
+ *    Description:  Header file that contains the definitions for the message 
+ *    		queue functions.
+ *
+ *        Version:  1.0
+ *        Created:  2018-03-07 08:17:33 PM
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ *         Author:  Will Murphy (wm), 
+ *   Organization:  
+ *
+ * =====================================================================================
+ */
 #pragma once
+
 
 #include <signal.h>
 #include <stdbool.h>
@@ -18,21 +37,19 @@
 
 typedef struct msg_t 
 {
+	long length;
 	long type;
 	char data[MAXMESSAGEDATA];
-	int length;
 } Message;
 
+int mesg_send(int, Message*);
+void Mesg_send(int, Message*);
 
-
-int read_message(int qid, long type, Message* buf);
-int send_message(int qid, Message* buf);
-
-key_t get_server_key(const char*);
+int mesg_recv(int, Message*);
+int Mesg_rect(int, Message*);
 
 int Msgget(key_t, int);
-
 int Msgctl(int, int, struct msqid_ds*);
 
 void server(int, int);
-void client(int, int);
+void client(int, int, int);

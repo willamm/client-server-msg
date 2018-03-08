@@ -15,50 +15,92 @@
  *
  * =====================================================================================
  */
+#include <time.h>
+#include <pthread.h>
+
 #include "mesg.h"
+
+static const unsigned long base_wait = 10000000L;
+static clock_t timer;
+static pthread_mutex_t timerLock = PTHREAD_MUTEX_INITIALIZER;
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  timer
+ *  Description:  Causes the client to terminate after around 10 seconds
+ * =====================================================================================
+ */
+static void* timeout(void* arg)
+{
+	(void) arg;
+	clock_t diff;
+	while(true)
+	{
+		pthread_mutex_lock(&timerLock);
+		diff = clock() - timer;
+		pthread_mutex_unlock(&timerLock);
+		unsigned ms = diff * 1000 / CLOCKS_PER_SEC;
+		if (ms > 10000)
+		{
+			break;
+		}
+
+	}
+	printf("\nClient timed out.\n");
+	exit(EXIT_SUCCESS);
+	return NULL;
+}/* -----  end of function timer  ----- */
 
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  client
- *  Description:  
+ *  Description: The main client function. Reads a file name from stdin and sends it 
+ *  		as a message to the server.
  * =====================================================================================
  */
-void client(int readFd, int writeFd)
+void client(int readFd, int writeFd, int priority)
 {
+	Message mesg;
+	char* buffer;
+	size_t currentLength;
+	
+	// Start the timer
+	timer = clock();
+
+	// Create the timer thread
+	pthread_t timerThread;
+	pthread_create(&timerThread, NULL, timeout, &priority);
+	pthread_detach(timerThread);
 	// Forever loop so that the client program doesn't need to be run multiple times
 	while (true)
 	{	
-		Message mesg;
-		sprintf(mesg.data, "%ld", (long) getpid());
-		strcat(mesg.data, " ");
-		printf("Enter a file that the server will open: ");
-		char buffer[1024];
+		snprintf(mesg.data, MAXMESSAGEDATA, "%ld ", (long) getpid());
+		currentLength = strlen(mesg.data);
 
-		if (fgets(buffer, 1024, stdin) == NULL)
+		printf("Enter a file that the server will open: ");
+		
+		buffer = mesg.data + currentLength;
+
+		if (fgets(buffer, MAXMESSAGEDATA - currentLength, stdin) == NULL)
 		{
 			perror("fgets");
 			continue;
 		}
-		char fileName[1024];
-		if (sscanf(buffer, "%s", fileName) != 1)
-		{
-			perror("sscanf");
-			continue;
-		}
-		// Strips newline character from filename 
-		fileName[strcspn(fileName, "\n")] = '\0';
-		size_t spaceLoc = strcspn(mesg.data, " ") + 1;
-		if (sprintf(mesg.data + spaceLoc, "%s", fileName) < 0)
-		{
-			perror("sprintf");
-			continue;
-		}
+		// Update the current length of the message
+		// currentLength = strlen(mesg.data);
+		// Strips newline character from filename
+		currentLength = strcspn(mesg.data, "\n");
+		buffer[currentLength] = '\0';
 
 		// Set the message members before the message is sent
-		mesg.length = strlen(mesg.data);
+		mesg.length = currentLength;
 		mesg.type = 1;
 
-		send_message(writeFd, &mesg);
+		if (mesg_send(writeFd, &mesg) == -1)
+		{
+			perror("msgsnd");
+			continue;
+		}
 
 		mesg.type = getpid();
 		
@@ -68,17 +110,20 @@ void client(int readFd, int writeFd)
 		//
 		// Should use a thread for a non blocking message receive
 		// so the client program can quit if no messages ready
-		
-		while (true)
+		int n;
+		pthread_mutex_lock(&timerLock);
+		while ((n = mesg_recv(readFd, &mesg)) > 0)
 		{
-			// Determine priority here?
-			if (read_message(readFd, getpid(), &mesg) == -1)
+			// Write n characters from the received message to stdout
+			// with a delay that depends upon the client priority
+			write(1, mesg.data, n);
+			if (priority > 1)
 			{
-				break;
-			}
-			printf("Message data: %s\n", mesg.data);
-			printf("Message length: %d\n", mesg.length);
+				nanosleep((const struct timespec[]){{0, base_wait * (priority - 1)}}, NULL);
+			}	
 		}
-		// Add a signal handler for exiting the client process
+		// Update timer
+		timer = clock();
+		pthread_mutex_unlock(&timerLock);
 	}
 }/* -----  end of function client  ----- */
